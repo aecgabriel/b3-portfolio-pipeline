@@ -15,15 +15,100 @@ sources:
 models:
   - name: stg_stock_positions
     description: Cleaned stock position data with standardized types
+    columns:
+      - name: ticker
+        description: Stock ticker symbol
+        tests:
+          - not_null
+      - name: quantity
+        description: Number of shares held
+        tests:
+          - not_null
+      - name: closing_price
+        description: Closing price per share
+        tests:
+          - not_null
+      - name: current_value
+        description: Total current market value
+        tests:
+          - not_null
+      - name: _reference_period
+        description: Year-month reference (YYYY-MM)
+        tests:
+          - not_null
+
   - name: stg_etf_positions
     description: Cleaned ETF position data with standardized types
+    columns:
+      - name: ticker
+        tests:
+          - not_null
+      - name: quantity
+        tests:
+          - not_null
+      - name: closing_price
+        tests:
+          - not_null
+      - name: _reference_period
+        tests:
+          - not_null
+
   - name: stg_fixed_income
     description: Cleaned fixed income (CDB/LCI/LCA) position data
+    columns:
+      - name: product_name
+        tests:
+          - not_null
+      - name: _reference_period
+        tests:
+          - not_null
+
   - name: stg_treasury_bonds
     description: Cleaned treasury bond position data
+    columns:
+      - name: product_name
+        tests:
+          - not_null
+      - name: invested_value
+        tests:
+          - not_null
+      - name: current_value
+        tests:
+          - not_null
+      - name: _reference_period
+        tests:
+          - not_null
+
   - name: stg_dividends
     description: Cleaned dividend/income payments received
+    columns:
+      - name: product_name
+        tests:
+          - not_null
+      - name: event_type
+        tests:
+          - not_null
+      - name: net_value
+        tests:
+          - not_null
+      - name: _reference_period
+        tests:
+          - not_null
+
   - name: stg_trades
     description: Cleaned trade data with ticker F-suffix removed
+    columns:
+      - name: ticker
+        description: Ticker without F suffix
+        tests:
+          - not_null
+      - name: _reference_period
+        tests:
+          - not_null
+
   - name: stg_stock_lending
     description: Cleaned stock lending position data
+    columns:
+      - name: _reference_period
+        tests:
+          - not_null
