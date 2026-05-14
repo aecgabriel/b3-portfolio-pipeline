@@ -1,10 +1,10 @@
-dbt-core
-dbt-duckdb
-duckdb
-astronomer-cosmos
-pandas
-openpyxl
-yfinance
-requests
+dbt-core==1.11.10
+dbt-duckdb==1.10.1
+duckdb==1.5.2
+astronomer-cosmos==1.14.1
+pandas==2.3.3
+openpyxl==3.1.5
+yfinance==1.3.0
+requests==2.33.0
 
 astro-run-dag # This package is needed for the astro run command. It will be removed before a deploy
