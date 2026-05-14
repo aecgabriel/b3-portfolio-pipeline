@@ -1,0 +1,132 @@
+name: CI - Airflow & dbt Validation
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  PYTHON_VERSION: "3.12"
+  DBT_PROJECT_DIR: include/dbt
+
+jobs:
+  airflow-validate:
+    name: Airflow DAG Validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Cache pip packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-airflow-${{ hashFiles('requirements.txt') }}
+          restore-keys: ${{ runner.os }}-pip-airflow-
+
+      - name: Install Airflow and dependencies
+        run: |
+          pip install --upgrade pip
+          pip install "apache-airflow[cncf.kubernetes]==3.0.1" \
+            --constraint "https://raw.githubusercontent.com/apache/airflow/constraints-3.0.1/constraints-${{ env.PYTHON_VERSION }}.txt"
+          pip install astronomer-cosmos==1.14.1 dbt-core==1.11.10 dbt-duckdb==1.10.1 duckdb==1.5.2
+          pip install pandas==2.3.3 openpyxl==3.1.5 yfinance==1.3.0 requests==2.33.0
+
+      - name: Setup directory structure for DAG parsing
+        run: |
+          sudo mkdir -p /usr/local/airflow/include/dbt
+          sudo mkdir -p /usr/local/airflow/dbt_data
+          sudo mkdir -p /usr/local/airflow/files
+          sudo mkdir -p /usr/local/airflow/include/reports
+          sudo cp -r include/dbt/* /usr/local/airflow/include/dbt/
+          sudo chmod -R 777 /usr/local/airflow
+
+      - name: Configure dbt profile for CI
+        run: |
+          printf 'b3_portfolio:\n  target: dev\n  outputs:\n    dev:\n      type: duckdb\n      path: /tmp/b3_ci.duckdb\n      threads: 1\n' \
+            > /usr/local/airflow/include/dbt/profiles.yml
+
+      - name: Install dbt packages (for Cosmos rendering)
+        run: cd /usr/local/airflow/include/dbt && dbt deps --profiles-dir /usr/local/airflow/include/dbt
+
+      - name: Validate DAG parsing
+        run: |
+          python -c "
+          import sys, os
+          os.environ['AIRFLOW_HOME'] = os.getcwd()
+          os.environ['AIRFLOW__CORE__DAGS_FOLDER'] = os.path.join(os.getcwd(), 'dags')
+          os.environ['AIRFLOW__DATABASE__SQL_ALCHEMY_CONN'] = 'sqlite:///airflow.db'
+          from airflow.models import DagBag
+          bag = DagBag(dag_folder='dags', include_examples=False)
+          if bag.import_errors:
+              for path, err in bag.import_errors.items():
+                  print(f'ERROR in {path}:\n{err}')
+              sys.exit(1)
+          print(f'Validated {len(bag.dags)} DAG(s) successfully')
+          for dag_id in bag.dags:
+              print(f'  - {dag_id}: {len(bag.dags[dag_id].tasks)} tasks')
+          "
+
+  dbt-validate:
+    name: dbt Project Validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Cache pip packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-dbt-${{ hashFiles('requirements.txt') }}
+          restore-keys: ${{ runner.os }}-pip-dbt-
+
+      - name: Cache dbt packages
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.DBT_PROJECT_DIR }}/dbt_packages
+          key: ${{ runner.os }}-dbt-packages-${{ hashFiles('include/dbt/packages.yml') }}
+          restore-keys: ${{ runner.os }}-dbt-packages-
+
+      - name: Install dbt
+        run: |
+          pip install --upgrade pip
+          pip install dbt-core==1.11.10 dbt-duckdb==1.10.1 duckdb==1.5.2
+
+      - name: Configure dbt profile for CI
+        run: |
+          mkdir -p ~/.dbt
+          printf 'b3_portfolio:\n  target: ci\n  outputs:\n    ci:\n      type: duckdb\n      path: /tmp/b3_ci.duckdb\n      threads: 1\n' \
+            > ~/.dbt/profiles.yml
+
+      - name: Install dbt packages
+        working-directory: ${{ env.DBT_PROJECT_DIR }}
+        run: dbt deps
+
+      - name: Validate dbt project
+        working-directory: ${{ env.DBT_PROJECT_DIR }}
+        run: dbt parse
+
+      - name: Compile dbt models
+        working-directory: ${{ env.DBT_PROJECT_DIR }}
+        run: dbt compile
+
+      - name: Validate SQL and YAML schema
+        working-directory: ${{ env.DBT_PROJECT_DIR }}
+        run: |
+          echo "=== Models ==="
+          dbt ls --resource-type model
+          echo ""
+          echo "=== Tests ==="
+          dbt ls --resource-type test
+          echo ""
+          echo "=== Summary ==="
+          echo "Models: $(dbt ls --resource-type model | wc -l)"
+          echo "Tests:  $(dbt ls --resource-type test | wc -l)"
