@@ -3,11 +3,107 @@ version: 2
 models:
   - name: fct_monthly_wallet
     description: Monthly wallet summary with total value, invested, gain/loss, and return percentage
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - _reference_period
+    columns:
+      - name: _reference_period
+        tests:
+          - not_null
+          - unique
+      - name: total_portfolio_value
+        description: Total portfolio value must be positive
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+      - name: total_invested
+        tests:
+          - not_null
+
   - name: fct_stock_detail
     description: Per-stock/ETF per-month detail with mean purchase price vs closing price and unrealized gain/loss
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - ticker
+            - _reference_period
+    columns:
+      - name: ticker
+        tests:
+          - not_null
+      - name: _reference_period
+        tests:
+          - not_null
+      - name: total_quantity
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+              inclusive: false
+      - name: current_closing_price
+        description: Closing price must be positive
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+              inclusive: false
+      - name: total_current_value
+        tests:
+          - not_null
+
   - name: fct_dividend_summary
     description: Dividend and income summary aggregated by stock, month, and event type
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - ticker
+            - _reference_period
+            - event_type
+    columns:
+      - name: ticker
+        tests:
+          - not_null
+      - name: event_type
+        tests:
+          - not_null
+      - name: total_income
+        description: Dividend income must be positive
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+              inclusive: false
+      - name: _reference_period
+        tests:
+          - not_null
+
   - name: fct_treasury_summary
     description: Treasury bond positions tracked monthly with invested vs current value
+    columns:
+      - name: product_name
+        tests:
+          - not_null
+      - name: _reference_period
+        tests:
+          - not_null
+      - name: total_invested
+        tests:
+          - not_null
+      - name: total_current_value
+        tests:
+          - not_null
+
   - name: fct_fixed_income_summary
     description: Fixed income (CDB/LCI/LCA) positions tracked monthly
+    columns:
+      - name: product_name
+        tests:
+          - not_null
+      - name: _reference_period
+        tests:
+          - not_null
+      - name: total_curva_value
+        tests:
+          - not_null

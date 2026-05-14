@@ -167,29 +167,34 @@ def b3_portfolio_pipeline():
     )
 
     # Staging models run sequentially (pool=1 slot) to avoid DuckDB lock conflicts
-    # since they all read from the same raw source tables concurrently
     dbt_staging = DbtTaskGroup(
         group_id="dbt_staging",
         project_config=ProjectConfig(DBT_PROJECT_PATH),
         profile_config=profile_config,
         render_config=RenderConfig(
-            test_behavior=TestBehavior.NONE,
+            test_behavior=TestBehavior.AFTER_EACH,
             select=["path:models/staging"],
         ),
         operator_args={"pool": DUCKDB_POOL},
     )
 
-    # Intermediate + Marts run in parallel where possible
-    # (dbt dependency graph naturally serializes what needs it)
+    # Intermediate + Marts with tests after each model
     dbt_transform = DbtTaskGroup(
         group_id="dbt_transform",
         project_config=ProjectConfig(DBT_PROJECT_PATH),
         profile_config=profile_config,
         render_config=RenderConfig(
-            test_behavior=TestBehavior.NONE,
+            test_behavior=TestBehavior.AFTER_EACH,
             select=["path:models/intermediate", "path:models/marts"],
         ),
         operator_args={"pool": DUCKDB_POOL},
+    )
+
+    # Singular tests (custom SQL tests in tests/ directory)
+    dbt_test = BashOperator(
+        task_id="dbt_test_singular",
+        bash_command=f"cd {DBT_PROJECT_PATH} && dbt test --profiles-dir {DBT_PROFILES_PATH} --select test_type:singular",
+        pool=DUCKDB_POOL,
     )
 
     @task
@@ -203,7 +208,7 @@ def b3_portfolio_pipeline():
         print(f"Report generated: {result}")
         return result
 
-    ingest_xlsx_to_duckdb() >> dbt_deps >> dbt_staging >> dbt_transform >> generate_excel_report()
+    ingest_xlsx_to_duckdb() >> dbt_deps >> dbt_staging >> dbt_transform >> dbt_test >> generate_excel_report()
 
 
 b3_portfolio_pipeline()
