@@ -1,0 +1,7 @@
+b3_portfolio:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: /usr/local/airflow/dbt_data/b3_portfolio.duckdb
+      threads: 1

@@ -1,0 +1,22 @@
+name: b3_portfolio
+version: '1.0.0'
+config-version: 2
+profile: b3_portfolio
+
+model-paths: ["models"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+models:
+  b3_portfolio:
+    staging:
+      +materialized: view
+    intermediate:
+      +materialized: view
+    marts:
+      +materialized: table

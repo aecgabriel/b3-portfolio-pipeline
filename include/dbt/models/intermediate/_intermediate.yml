@@ -1,0 +1,11 @@
+version: 2
+
+models:
+  - name: int_trades_clean
+    description: Trades filtered to buys with total cost calculated per lot
+  - name: int_weighted_avg_price
+    description: Weighted average purchase price per ticker across all trade records
+  - name: int_all_equity_positions
+    description: Union of stocks and ETFs aggregated per ticker per month across brokers
+  - name: int_monthly_portfolio_value
+    description: Monthly total portfolio value across all asset types

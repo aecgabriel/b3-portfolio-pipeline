@@ -1,0 +1,29 @@
+version: 2
+
+sources:
+  - name: raw
+    schema: main
+    tables:
+      - name: raw_stock_positions
+      - name: raw_etf_positions
+      - name: raw_fixed_income
+      - name: raw_treasury_bonds
+      - name: raw_dividends
+      - name: raw_trades
+      - name: raw_stock_lending
+
+models:
+  - name: stg_stock_positions
+    description: Cleaned stock position data with standardized types
+  - name: stg_etf_positions
+    description: Cleaned ETF position data with standardized types
+  - name: stg_fixed_income
+    description: Cleaned fixed income (CDB/LCI/LCA) position data
+  - name: stg_treasury_bonds
+    description: Cleaned treasury bond position data
+  - name: stg_dividends
+    description: Cleaned dividend/income payments received
+  - name: stg_trades
+    description: Cleaned trade data with ticker F-suffix removed
+  - name: stg_stock_lending
+    description: Cleaned stock lending position data

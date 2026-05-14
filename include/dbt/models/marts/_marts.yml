@@ -1,0 +1,13 @@
+version: 2
+
+models:
+  - name: fct_monthly_wallet
+    description: Monthly wallet summary with total value, invested, gain/loss, and return percentage
+  - name: fct_stock_detail
+    description: Per-stock/ETF per-month detail with mean purchase price vs closing price and unrealized gain/loss
+  - name: fct_dividend_summary
+    description: Dividend and income summary aggregated by stock, month, and event type
+  - name: fct_treasury_summary
+    description: Treasury bond positions tracked monthly with invested vs current value
+  - name: fct_fixed_income_summary
+    description: Fixed income (CDB/LCI/LCA) positions tracked monthly
